@@ -13,17 +13,14 @@ These instructions will get you a copy of the project up and running on your loc
 
 You will need to have .NET Core
 
-```
+### Usage
 To build and run the application, copy to the minecraft server directory and type the following command:
-
-`dotnet minecraftserverupdater.dll`
-
-
 ```
+dotnet minecraftserverupdater.dll
+
 To update to latest shapshot version type the following command:
-
-`dotnet minecraftserverupdater.dll -s`
-
+```
+dotnet minecraftserverupdater.dll -s
 ```
 
 
