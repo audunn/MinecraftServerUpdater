@@ -25,18 +25,18 @@ dotnet minecraftserverupdater.dll -s
 
 ## Built With
 
-* [.netcore](https://dotnet.github.io/) - The web framework used
+* [.netcore](https://dotnet.github.io/) - The general-purpose development platform used
 * [json.net](https://www.newtonsoft.com/json) - JSON framework for .NET
 
 ## Authors
 
 * **Auðunn Baldvinsson** - *Initial work* - [audunn](https://github.com/audunn)
 
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
+See also the list of [contributors](https://github.com/audunn/MinecraftServerUpdater/graphs/contributors) who participated in this project.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/dotnet/core/blob/master/LICENSE.TXT) file for details
 
 ## Acknowledgments
 
