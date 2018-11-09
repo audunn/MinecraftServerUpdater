@@ -17,12 +17,11 @@ You will need to have .NET Core
 To build and run the application, copy to the minecraft server directory and type the following command:
 ```
 dotnet minecraftserverupdater.dll
-
+```
 To update to latest shapshot version type the following command:
 ```
 dotnet minecraftserverupdater.dll -s
 ```
-
 
 ## Built With
 
