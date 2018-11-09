@@ -36,7 +36,7 @@ See also the list of [contributors](https://github.com/audunn/MinecraftServerUpd
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/dotnet/core/blob/master/LICENSE.TXT) file for details
+This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details
 
 ## Acknowledgments
 
