@@ -1,7 +1,7 @@
 # Minecraft Server Updater
 
 ## About
-Simple Minecraft Server updater. Checks for Mineraft server versions here https://launchermeta.mojang.com/mc/game/version_manifest.json and downloads latest version if needed.
+Simple Minecraft Server updater. Checks for Mineraft server versions here https://launchermeta.mojang.com/mc/game/version_manifest.json and downloads the latest version if needed.
 ### Why
 Me and my son run a [Minecraft](https://minecraft.net) server at home for fun and he sometimes gets into trouble running it when the client has updated but the server has not. My son is still young so he does not know yet how to update it himself.
 So we made this to be used in Minecraft servers startup script to update the server automaticaly. 
@@ -29,7 +29,7 @@ dotnet minecraftserverupdater.dll -s
 
 ## Authors
 
-* **Auðunn Baldvinsson** - *Initial work* - [audunn](https://github.com/audunn)
+* **AuÃ°unn Baldvinsson** - *Initial work* - [audunn](https://github.com/audunn)
 
 See also the list of [contributors](https://github.com/audunn/MinecraftServerUpdater/graphs/contributors) who participated in this project.
 
