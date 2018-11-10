@@ -1,10 +1,11 @@
 # Minecraft Server Updater
 
 ## About
-Simple Minecraft Server updater. Checks for minerafts server version here https://launchermeta.mojang.com/mc/game/version_manifest.json and download if needed.
+Simple Minecraft Server updater. Checks for Mineraft server versions here https://launchermeta.mojang.com/mc/game/version_manifest.json and downloads latest version if needed.
 ### Why
-Me and my son run a [Minecraft](https://minecraft.net) server at home for fun and he sometimes gets into trouble running it when the client has updated but the server has not. He is still young so he does not know yet how to update it himself.
-So we made this to be used in Minecraft servers startup script to update the server automaticaly. As a learning experience we made it using .net core 2.1
+Me and my son run a [Minecraft](https://minecraft.net) server at home for fun and he sometimes gets into trouble running it when the client has updated but the server has not. My son is still young so he does not know yet how to update it himself.
+So we made this to be used in Minecraft servers startup script to update the server automaticaly. 
+As a learning experience more than anything else we made it in c# using .net core 2.1
 
 ### Prerequisites
 
@@ -15,7 +16,7 @@ To run the application, copy to the Minecraft server directory and type the foll
 ```
 dotnet minecraftserverupdater.dll
 ```
-This will update to lastest relaes version by default but to update to latest shapshot version type the following command:
+This will update to lastest release version by default but to update to latest shapshot version type the following command:
 ```
 dotnet minecraftserverupdater.dll -s
 ```
