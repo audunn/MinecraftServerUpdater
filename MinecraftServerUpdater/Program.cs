@@ -1,127 +1,170 @@
-﻿using McMaster.Extensions.CommandLineUtils;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
-using System.IO;
+﻿// See https://aka.ms/new-console-template for more information
+using MinecraftServerUpdater;
+using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.Linq;
-using System.Net;
 using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
-namespace MinecraftServerUpdater
+// Create a root command with some options
+var rootCommand = new RootCommand
 {
-    public class Program
+    new Option<bool>(
+        "--snapshot",
+        getDefaultValue: () => false,
+        description: "Get latest shapshot version instead of relase verson"),
+    new Option<string>(
+        "--directory",
+        "Set working directory where Minecraft server is installed, default is current directory")
+};
+
+rootCommand.Description = "Minecraft Server Updater";
+// Note that the parameters of the handler method are matched according to the names of the options
+rootCommand.Handler = CommandHandler.Create<bool, string>(async (snapshot, directory) =>
+{
+    Console.WriteLine($"The value for --snapshot is: {snapshot}");
+    Console.WriteLine($"The value for --directory is: {directory}");
+    await OnExecute(snapshot, directory);
+});
+return rootCommand.InvokeAsync(args).Result;
+
+
+async Task OnExecute(bool snapshot, string directory)
+{    
+    HttpClient httpClient = new();
+    string versionsLink = "https://launchermeta.mojang.com/mc/game/version_manifest.json";
+    string fileName = "server.jar";
+    string versionFileName = "minecraftversion.txt";
+    string downloadPath = Directory.GetCurrentDirectory();
+    if (!string.IsNullOrWhiteSpace(directory))
     {
-        [Option("-s|--snapshot", Description = "Get latest shapshot version instead of relase verson")]
-        public bool shapshot { get; } = false;
-
-        [Option("-d|--directory", Description = "Set working directory where Minecraft server is installed, default is current directory")]
-        public string WorkingDirectory { get; } 
-        static int Main(string[] args)        
-            => CommandLineApplication.Execute<Program>(args);
-
-
-        private void OnExecute()
+        downloadPath = directory;
+    }
+    string verisonToGet = "release";
+    if (snapshot)
+    {
+        verisonToGet = "snapshot";
+    }
+    try
+    {
+        Console.WriteLine("Check latest versions.json for latest {verisonToGet} version");
+        //var jsonFile = wc.DownloadString(versionsLink);
+        var response = await httpClient.GetStringAsync(versionsLink);
+        var options = new JsonSerializerOptions
         {
-            Console.WriteLine("Minecraft Server Updater");
-            WebClient wc = new WebClient();
-            string versionsLink = "https://launchermeta.mojang.com/mc/game/version_manifest.json";            
-            string fileName = "server.jar"; 
-            string versionFileName = "minecraftversion.txt";
-            string downloadPath = Directory.GetCurrentDirectory();
-            if (!string.IsNullOrWhiteSpace(WorkingDirectory))
+            PropertyNameCaseInsensitive = true
+        };
+        try
+        {
+            //var versions = JObject.Parse(jsonFile);
+            var versions = JsonSerializer.Deserialize<MinecraftVersions>(response, options);
+            
+            if (versions?.Latest == null)
             {
-                downloadPath = WorkingDirectory;
+                Console.WriteLine($"No relase found in json:");
+                return;
             }
-            string verisonToGet = "release";
-            if (shapshot)
+            Console.WriteLine($"Latest online versions release: {versions.Latest.Release} snapshot: {versions.Latest.Snapshot}");
+
+            var getVersion = snapshot ? versions.Latest.Release : versions.Latest.Snapshot;
+            var latestVersionDetails = versions?.Versions?.FirstOrDefault(v => v.Id == getVersion);
+            if (latestVersionDetails == null)
             {
-                verisonToGet = "snapshot";
+                Console.WriteLine($"No relase found in json:");
+                return;
+            }            
+            Console.WriteLine($"Parsed Json, latest {verisonToGet} version: {getVersion}.");
+
+            Console.WriteLine($"Getting version details from {latestVersionDetails.Url}: ");
+            var versionDetailsJson = await httpClient.GetStringAsync(latestVersionDetails.Url);  //downloads the versions details json file
+            if(string.IsNullOrWhiteSpace(versionDetailsJson))
+            {
+                Console.WriteLine($"No version details found in {latestVersionDetails.Url}:");
+                return;
             }
-            try
+            var versionsDetails = JsonSerializer.Deserialize<VersionDetails>(versionDetailsJson, options);
+            if (versionsDetails == null)
             {
-                Console.WriteLine("Check latest versions.json for latest {verisonToGet} version");
-                var jsonFile = wc.DownloadString(versionsLink);
+                Console.WriteLine($"No version details found in json:");
+                return;
+            }
+            string serverUrl = versionsDetails.Downloads.Server.Url;
+            string serverSha1 = versionsDetails.Downloads.Server.Sha1;
+            int serverSize = versionsDetails.Downloads.Server.Size;
+            string versionId = versionsDetails.Id;
+            string serverFileFullPath = Path.Combine(downloadPath, fileName);
+            string tempServerFileFullPath = serverFileFullPath + "temp";
+            versionFileName = Path.Combine(downloadPath, versionFileName);
+            string localSha1 = String.Empty;
+            if (!System.IO.File.Exists(serverFileFullPath)) //if server jar doesn't exist
+            {
+                System.IO.File.WriteAllText(versionFileName, "");
+            }
+            else
+            {
+                localSha1 = GetShaCheckSum(serverFileFullPath);
+            }
+            if (string.IsNullOrWhiteSpace(localSha1) || !serverSha1.Equals(localSha1))
+            {
+                Console.WriteLine($"Server.jar Checksum does not match, online version has changed");
+                Console.WriteLine($"local  server.jar - {localSha1}");
+                Console.WriteLine($"online server.jar - {serverSha1}");
+                Console.WriteLine($"Starting update to version {versionId}.");
                 try
                 {
-                    var versions = JObject.Parse(jsonFile);
-                    JObject relaseVersion = versions["versions"].Values<JObject>()
-                        .Where(m => m["type"].Value<string>() == verisonToGet)
-                        .FirstOrDefault();
-                    if (relaseVersion == null)
+                    Console.WriteLine($"Starting update to {verisonToGet} version {versionId}");                    
+                    //wc.DownloadFile(serverUrl, serverFileFullPath);
+                    byte[] fileBytes = await httpClient.GetByteArrayAsync(serverUrl);
+                    System.IO.File.WriteAllBytes(tempServerFileFullPath, fileBytes);
+                    string newLocalSha1 = GetShaCheckSum(tempServerFileFullPath);
+                    if (!serverSha1.Equals(newLocalSha1))
                     {
-                        Console.WriteLine($"No relase found in json:");
-                        return;
-                    }
-                    Console.WriteLine($"Found version in json: {relaseVersion["id"]}, {relaseVersion["type"]} {relaseVersion["url"]}");
-                    var latestVersion = relaseVersion["id"].ToString();
-                    var detailJsonUrl = relaseVersion["url"].ToString();
-                    var downloadLastVersion = false;
-                    Console.WriteLine($"Parsed Json, latest {verisonToGet} version: {latestVersion}.");
-
-                    Console.WriteLine("Getting version details: ");
-                    var versionDetailsJson = wc.DownloadString(detailJsonUrl); //downloads the versions details json file
-
-                    var versionsDetails = JObject.Parse(versionDetailsJson);
-                    string serverUrl = (string)versionsDetails["downloads"]["server"]["url"];
-                    string serverSha1 = (string)versionsDetails["downloads"]["server"]["sha1"];
-                    string serverSize = (string)versionsDetails["downloads"]["server"]["size"];
-                    string versionId = (string)versionsDetails["downloads"]["id"];
-                    string serverFileFullPath = Path.Combine(downloadPath, fileName);
-                    versionFileName = Path.Combine(downloadPath, versionFileName);
-                    if (!File.Exists(serverFileFullPath)) //if server jar doesn't exist
-                    {
-                        downloadLastVersion = true;
-                        File.WriteAllText(versionFileName, ""); 
-                    }
-                    string localSha1 = GetShaCheckSum(serverFileFullPath);
-                    if (!downloadLastVersion && !serverSha1.Equals(localSha1))
-                    {
-                        Console.WriteLine($"Server.jar Checksum does not match");
-                        Console.WriteLine($"local  server.jar - {localSha1}");
-                        Console.WriteLine($"online server.jar - {serverSha1}");
-                        Console.WriteLine($"Starting update to version {latestVersion}.");
-                        try
-                        {
-                            Console.WriteLine($"Starting update to {verisonToGet} version {latestVersion}");
-                            File.WriteAllText(versionFileName, latestVersion);           
-                            wc.DownloadFile(serverUrl, serverFileFullPath);
-                            Console.WriteLine($"Updated to {verisonToGet} version {latestVersion}");
-                        }
-                        catch(Exception ex)
-                        {
-                            Console.WriteLine($"Error when downloading or saving file. Check file link and directory permissions. {ex.Message}");
-                        }
+                        Console.WriteLine($"Downloaded Server.jar Checksum does not match, manifest {serverSha1} SHA {newLocalSha1}");
+                        Console.WriteLine($"reverting");
+                        System.IO.File.Delete(tempServerFileFullPath);
                     }
                     else
                     {
-                        Console.WriteLine($"Minecraft server is already up to date at {verisonToGet} version {latestVersion}.");
-                    }
+                        System.IO.File.Move(tempServerFileFullPath,serverFileFullPath, true);
+                        System.IO.File.WriteAllText(versionFileName, versionId);
+                        Console.WriteLine($"Updated to {verisonToGet} version {versionId}");
+                    }                   
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error while parsing json.  {ex.Message}");
+                    Console.WriteLine($"Error when downloading or saving file. Check file link and directory permissions. {ex.Message}");
                 }
             }
-            catch(Exception ex)
+            else
             {
-                Console.WriteLine($"Error while downloading versions.json file");
-                Console.WriteLine("{ex.Message}");
+                Console.WriteLine($"Minecraft server is already up to date at {verisonToGet} version {getVersion}.");
             }
         }
-
-        private static string GetShaCheckSum(string filename)
+        catch (Exception ex)
         {
-            string checkSum = string.Empty;
-            using (FileStream stream = File.OpenRead(filename))
-            {
-                using (SHA1Managed sha = new SHA1Managed())
-                {
-                    byte[] checksum = sha.ComputeHash(stream);
-                    checkSum = BitConverter.ToString(checksum)
-                        .Replace("-", string.Empty).ToLower();
-                }
-            }
-            return checkSum;
+            Console.WriteLine($"Error while parsing json.  {ex.Message}");
         }
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error while downloading versions.json file");
+        Console.WriteLine($"{ex.Message}");
+    }
+}
+
+
+static string GetShaCheckSum(string filename)
+{
+    string checkSum = string.Empty;
+    using (FileStream stream = System.IO.File.OpenRead(filename))
+    {
+        using (HashAlgorithm sha = SHA1.Create())
+        {
+            byte[] checksum = sha.ComputeHash(stream);
+            checkSum = BitConverter.ToString(checksum)
+                .Replace("-", string.Empty).ToLower();
+        }
+    }
+    return checkSum;
 }
