@@ -1,2 +1,0 @@
-C:\Users\audun\Source\Repos\MinecraftServerUpdater\MinecraftServerUpdater\bin\Release\net6.0\win-x64\publish\MinecraftServerUpdater.pdb
-C:\Users\audun\Source\Repos\MinecraftServerUpdater\MinecraftServerUpdater\bin\Release\net6.0\win-x64\publish\MinecraftServerUpdater.exe
